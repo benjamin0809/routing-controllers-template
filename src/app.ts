@@ -4,7 +4,7 @@
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-14 11:14:18
  * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-08-14 18:01:02
+ * @LastEditTime: 2021-08-16 11:56:59
  */
 import "reflect-metadata";
 import {
@@ -17,27 +17,32 @@ import {
 import { Container } from "typedi";
 import { CategoryController } from "./controllers/CategoryController";
 import { PostController } from "./controllers/PostController";
+import { UserController } from "./controllers/UserController";
 import { validationMetadatasToSchemas } from "class-validator-jsonschema";
 const { defaultMetadataStorage } = require("class-transformer/cjs/storage");
 import { routingControllersToSpec } from "routing-controllers-openapi";
 import * as swaggerUiExpress from "swagger-ui-express";
+import DB from './mongo/db'
 /**
  * Setup routing-controllers to use typedi container.
  */
 
 useContainer(Container);
+
+DB.init()
 /**
  * We can add options about how routing-controllers should configure itself.
  * Here we specify what controllers should be registered in our express server.
  */
 const routingControllersOptions = {
-  controllers: [CategoryController, PostController],
+  controllers: [CategoryController, PostController, UserController],
   authorizationChecker: async (action: Action, roles?: string[]) => {
     // perform queries based on token from request headers
     // const token = action.request.headers["authorization"];
     // return database.findUserByToken(token).roles.in(roles);
     console.log(roles);
-    return roles.indexOf("get") > -1;
+    // return roles.indexOf("get") > -1;
+    return true
   },
 };
 
