@@ -4,7 +4,7 @@
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-14 11:14:18
  * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-08-16 11:56:59
+ * @LastEditTime: 2021-08-17 09:56:19
  */
 import "reflect-metadata";
 import {
@@ -23,6 +23,7 @@ const { defaultMetadataStorage } = require("class-transformer/cjs/storage");
 import { routingControllersToSpec } from "routing-controllers-openapi";
 import * as swaggerUiExpress from "swagger-ui-express";
 import DB from './mongo/db'
+// import { ResponseMiddleware } from "./middleware/ResponseMiddleware";
 /**
  * Setup routing-controllers to use typedi container.
  */
@@ -44,6 +45,8 @@ const routingControllersOptions = {
     // return roles.indexOf("get") > -1;
     return true
   },
+  
+  // middlewares: [ResponseMiddleware],
 };
 
 /**

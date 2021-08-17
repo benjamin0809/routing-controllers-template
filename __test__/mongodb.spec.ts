@@ -4,12 +4,12 @@
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-14 16:14:44
  * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-08-16 12:20:33
+ * @LastEditTime: 2021-08-16 15:31:24
  */ 
-import * as mongoose from "mongoose";
-import { UserModel } from '../src/mongo/type/User'
-import "should";
-import should = require("should");
+import * as mongoose from "mongoose"; 
+import { Service } from "typedi/decorators/Service";
+import { UserModel } from "../src/mongo/type/User";
+import { UserRepository } from "../src/repository/UserRepository";
 
 mongoose.connect("mongodb://localhost:27017/admin");
 const db = mongoose.connection;
@@ -18,14 +18,19 @@ db.once("open", () => {
   console.log("Connected to 'winedb' database");
 });
  
-// UserModel is a regular Mongoose Model with correct types
-(async () => {
-  // const u = await UserModel.create({ name: "Benjamin" , email: '894306909@qq.com', gender: '1', account: '15014491899', password: '123'});
-  const user = await UserModel.findOne({ name: /benjamin/i});
-  const res = await UserModel.updateMany({ name: /benjamin/i}, { name: 'Benjamin Chiu'});
-  const res1 = await UserModel.findById('6119d230e48246380c2a4e89');
-  const users = await UserModel.find();
-  // prints { _id: 59218f686409d670a97e53e0, name: 'JohnDoe', __v: 0 }
-  console.log(users);
-  console.log(typeof users);
-})();
+
+UserModel.find({name: 'Benjamin Chiu'}).exec().then(res =>{
+  console.log(res)
+})
+
+UserModel.findById('6119d29b8db8d33e388f1e45').exec().then(res =>{
+  console.log(res)
+})
+
+UserModel.updateOne({_id : '6119d29b8db8d33e388f1e45'}, {name: 'Benjamin CHIUu', password: 'mrz0809', extra: 'marvelous'}).exec()
+
+UserModel.schema.add
+
+UserModel.count().exec().then(nums => {
+  console.log(nums)
+})

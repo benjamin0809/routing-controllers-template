@@ -3,12 +3,13 @@
   "compilerOptions": {
     "outDir": "build",
     "module": "commonjs",
+    "lib": ["ES2015","ES2016","ES2018","ES2019","ES2020"],
     "target": "es6",
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "noImplicitAny": true,
-    "sourceMap": true
+    "sourceMap": false
   },
   "exclude": [
     "node_modules",
