@@ -23,12 +23,12 @@ import { CategoryRepository } from "../repository/CategoryRepository";
 import { User } from "../mongo/type/User";
 import * as Response from "../model/User";
 import { TokenMiddleware } from "../middleware/TokenMiddleware";
-import { AbstractControllerTemplate } from "./BaseController";
+import { AbstractControllerTemplate, BaseController } from "./BaseController";
 import { OpenAPI, ResponseSchema } from "routing-controllers-openapi";
 import { UserRepository } from "../repository/UserRepository";
 import { ResponseMiddleware } from "../middleware/ResponseMiddleware";
 import { plainToClass } from "class-transformer";
-import { IsNumber, IsObject, IsString, MaxLength } from "class-validator";
+import { Allow, IsEmpty, IsNumber, IsObject, IsString, MaxLength } from "class-validator";
 class UserResponse {
   @IsString()
   name: string
@@ -47,7 +47,28 @@ class Res {
   result: UserResponse[]
 }
 
-class CreateUserDto {
+class LoginDto { 
+  @Allow()
+  password?: string; 
+  @IsString()
+  @MaxLength(20)
+  account: string; 
+}
+
+class LoginOutputDto {  
+  @IsString() 
+  name: string; 
+  @Allow() 
+  @IsString()
+  email: string; 
+  @Allow() 
+  @IsString()
+  gender: string;  
+  @IsString() 
+  account: string; 
+}
+
+class CreateUserDto extends User{
   @IsString()
   @MaxLength(20)
   name: string;
@@ -64,7 +85,15 @@ class CreateUserDto {
 })
 @JsonController("/api/v1")
 export class UserController {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: UserRepository) {
+  }
+  ObjectMapper<T>(c: { new(): T; },source: any) { 
+    const t = new c()
+    Object.keys(t).map(i =>{
+      (t as any)[i] = source[i]
+    })
+    return t
+  }
 
   @Authorized()
   @Get("/users")
@@ -76,7 +105,7 @@ export class UserController {
   async all() {
     const res = await this.userRepository.findAll(); 
     const user = plainToClass(Response.User, res)
-    console.log(res, user)
+    console.log(res, user) 
     return { res, user};
   }
 
@@ -100,14 +129,25 @@ export class UserController {
   @Post("/user")
   @ResponseSchema(Response.User, { isArray: false })
   @OpenAPI({ summary: 'Create a new user' })
-  category(@Body() user: CreateUserDto) {
+  create(@Body() user: CreateUserDto) {
     return this.userRepository.save(user);
   }
 
-  // @Delete("/categories/:id")
-  // @ResponseSchema(Category, { isArray: true })
-  // @OpenAPI({ summary: 'Return a list of users' })
-  // delete(@Param("id") id: number): Category {
-  //   return this.categoryRepository.remove(id);
-  // }
-} 
+  @Post("/login")
+  @ResponseSchema(LoginOutputDto, { isArray: false })
+  @OpenAPI({ summary: 'Login' })
+  async login(@Body() dto: LoginDto) {
+    const res = await this.userRepository.find({ name: dto.account});
+    if(res.length > 0) {
+      let user: any = res[0]
+      if(user.password === dto.password) { 
+        this.ObjectMapper<LoginOutputDto>(LoginOutputDto, user)
+      }else {
+        throw new Error('Password is incorrect!')
+      }
+    } else {
+      throw new Error('Account is not exist!')
+    }
+    
+  } 
+}
