@@ -3,8 +3,8 @@
  * @Version: 1.0
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-16 11:41:34
- * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-08-17 10:45:41
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-08-26 21:16:19
  */
 import { plainToClass,classToClass, serialize, deserialize } from "class-transformer";
 import { Service } from "typedi";
@@ -18,6 +18,14 @@ export class UserRepository extends BaseRepository<User> {
   constructor() {
     super()
   }
+  async exist(filter = {}): Promise<boolean> {
+    // here, for example you can load categories using mongoose
+    // you can also return a promise here
+    // simulate async with creating an empty promise
+    const res = await UserModel.exists(filter);  
+    return res
+  }
+
   async find(filter = {}) {
     // here, for example you can load categories using mongoose
     // you can also return a promise here
@@ -43,7 +51,8 @@ export class UserRepository extends BaseRepository<User> {
 
   async save(user: User) {
     // here, for example you can save a category to mongodb using mongoose
-    return await UserModel.create(user);
+    const res =  await UserModel.create(user);
+    return this.transformOne(res)
   }
 
   async remove(id: number) {

@@ -3,8 +3,8 @@
  * @Version: 1.0
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-16 10:38:35
- * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-08-17 15:29:00
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-08-26 22:51:51
  */
 import { Type } from 'class-transformer'
 import {
@@ -28,7 +28,7 @@ import { OpenAPI, ResponseSchema } from "routing-controllers-openapi";
 import { UserRepository } from "../repository/UserRepository";
 import { ResponseMiddleware } from "../middleware/ResponseMiddleware";
 import { plainToClass } from "class-transformer";
-import { Allow, IsEmpty, IsNumber, IsObject, IsString, MaxLength } from "class-validator";
+import { Allow, IsEmail, IsEmpty, IsInt, IsNumber, IsObject, IsString, MaxLength } from "class-validator";
 class UserResponse {
   @IsString()
   name: string
@@ -72,13 +72,35 @@ class CreateUserDto extends User{
   @IsString()
   @MaxLength(20)
   name: string;
-  @IsString()
+  @Allow() 
+  @IsEmail()
   email: string;
-  @IsNumber()
+  @IsInt()
+  @Allow() 
   gender: number;
   @IsString()
   account: string; 
+  @Allow() 
+  password?: string;
 }
+
+class CreateUserResultDto extends User{
+  @IsString()
+  @MaxLength(20)
+  name: string;
+  @Allow() 
+  @IsEmail()
+  email: string;
+  @IsInt()
+  @Allow() 
+  gender: number;
+  @IsString()
+  account: string; 
+  @Allow() 
+  @IsString() 
+  password: string;
+}
+
 @Service()
 @OpenAPI({
   security: [{ basicAuth: [] }],
@@ -127,21 +149,37 @@ export class UserController {
   }
 
   @Post("/user")
-  @ResponseSchema(Response.User, { isArray: false })
+  @ResponseSchema(LoginOutputDto, { isArray: false })
   @OpenAPI({ summary: 'Create a new user' })
-  create(@Body() user: CreateUserDto) {
-    return this.userRepository.save(user);
+  async create(@Body() user: CreateUserDto) { 
+    const is_exist_account = await this.userRepository.exist({ account: user.account});
+    if(is_exist_account) {
+      throw new Error('User is exist!')
+    }
+
+    const is_exist_email = await this.userRepository.exist({ email: user.email}) 
+    if(is_exist_email) {
+      throw new Error('Email is exist!')
+    }
+
+    if(!user.password) {
+      user.password = '123456'
+    }
+
+    const res = await this.userRepository.save(user);
+    console.log(res)
+    return this.ObjectMapper<LoginOutputDto>(LoginOutputDto, res)
   }
 
   @Post("/login")
   @ResponseSchema(LoginOutputDto, { isArray: false })
   @OpenAPI({ summary: 'Login' })
   async login(@Body() dto: LoginDto) {
-    const res = await this.userRepository.find({ name: dto.account});
+    const res = await this.userRepository.find({ account: dto.account});
     if(res.length > 0) {
       let user: any = res[0]
       if(user.password === dto.password) { 
-        this.ObjectMapper<LoginOutputDto>(LoginOutputDto, user)
+        return this.ObjectMapper<LoginOutputDto>(LoginOutputDto, user)
       }else {
         throw new Error('Password is incorrect!')
       }
