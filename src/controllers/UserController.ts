@@ -55,17 +55,19 @@ class LoginDto {
   account: string; 
 }
 
-class LoginOutputDto {  
+class LoginOutputDto {   
   @IsString() 
-  name: string; 
+  _id: string = '';
+  @IsString() 
+  name: string = ''; 
   @Allow() 
   @IsString()
-  email: string; 
+  email: string= ''; 
   @Allow() 
   @IsString()
-  gender: string;  
+  gender: string= '';  
   @IsString() 
-  account: string; 
+  account: string= ''; 
 }
 
 class CreateUserDto extends User{
@@ -103,7 +105,7 @@ class CreateUserResultDto extends User{
 
 @Service()
 @OpenAPI({
-  security: [{ basicAuth: [] }],
+  security: [{ basicAuth: ['/api/v1/login'] }],
 })
 @JsonController("/api/v1")
 export class UserController {
@@ -111,6 +113,8 @@ export class UserController {
   }
   ObjectMapper<T>(c: { new(): T; },source: any) { 
     const t = new c()
+    console.log(t)
+    console.log(Object.keys(t))
     Object.keys(t).map(i =>{
       (t as any)[i] = source[i]
     })
