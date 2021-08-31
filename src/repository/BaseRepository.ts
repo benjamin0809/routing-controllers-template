@@ -24,4 +24,14 @@ export class BaseRepository<T> {
     });
     return a;
   }
+
+  ObjectMapper<S>(c: { new(): S; },source: any) { 
+    const t = new c()
+    console.log(t)
+    console.log(Object.keys(t))
+    Object.keys(t).map(i =>{
+      (t as any)[i] = source[i]
+    })
+    return t
+  }
 }

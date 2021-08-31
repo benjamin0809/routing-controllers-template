@@ -18,11 +18,14 @@ import { Container } from "typedi";
 import { CategoryController } from "./controllers/CategoryController";
 import { PostController } from "./controllers/PostController";
 import { UserController } from "./controllers/UserController";
+import { AuthController } from "./controllers/AuthController";
+
 import { validationMetadatasToSchemas } from "class-validator-jsonschema";
 const { defaultMetadataStorage } = require("class-transformer/cjs/storage");
 import { routingControllersToSpec } from "routing-controllers-openapi";
 import * as swaggerUiExpress from "swagger-ui-express";
 import DB from './mongo/db'
+import { ErrorMiddleware } from "./middleware/ErrorMiddleware";
 // import { ResponseMiddleware } from "./middleware/ResponseMiddleware";
 /**
  * Setup routing-controllers to use typedi container.
@@ -36,7 +39,7 @@ DB.init()
  * Here we specify what controllers should be registered in our express server.
  */
 const routingControllersOptions = {
-  controllers: [CategoryController, PostController, UserController],
+  controllers: [CategoryController, PostController, UserController, AuthController],
   authorizationChecker: async (action: Action, roles?: string[]) => {
     // perform queries based on token from request headers
     // const token = action.request.headers["authorization"];
@@ -45,7 +48,7 @@ const routingControllersOptions = {
     // return roles.indexOf("get") > -1;
     return true
   },
-  
+  middlewares: [ErrorMiddleware],
   // middlewares: [ResponseMiddleware],
 };
 
@@ -84,7 +87,7 @@ const spec = routingControllersToSpec(
   }
 );
 
-expressApp.use("/docs", swaggerUiExpress.serve, swaggerUiExpress.setup(spec));
+expressApp.use("/docs", swaggerUiExpress.serve, swaggerUiExpress.setup(spec)); 
 /**
  * Start the express app.
  */

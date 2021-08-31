@@ -25,10 +25,12 @@ import * as Response from "../model/User";
 import { TokenMiddleware } from "../middleware/TokenMiddleware";
 import { AbstractControllerTemplate, BaseController } from "./BaseController";
 import { OpenAPI, ResponseSchema } from "routing-controllers-openapi";
+import { LoginError, AuthError, ApiError } from '../errors/Error'
 import { UserRepository } from "../repository/UserRepository";
 import { ResponseMiddleware } from "../middleware/ResponseMiddleware";
 import { plainToClass } from "class-transformer";
 import { Allow, IsEmail, IsEmpty, IsInt, IsNumber, IsObject, IsString, MaxLength } from "class-validator";
+import { AuthErrorCode, RequestCode } from '../errors/ErrorCode';
 class UserResponse {
   @IsString()
   name: string
@@ -111,15 +113,6 @@ class CreateUserResultDto extends User{
 export class UserController {
   constructor(private userRepository: UserRepository) {
   }
-  ObjectMapper<T>(c: { new(): T; },source: any) { 
-    const t = new c()
-    console.log(t)
-    console.log(Object.keys(t))
-    Object.keys(t).map(i =>{
-      (t as any)[i] = source[i]
-    })
-    return t
-  }
 
   @Authorized()
   @Get("/users")
@@ -158,12 +151,12 @@ export class UserController {
   async create(@Body() user: CreateUserDto) { 
     const is_exist_account = await this.userRepository.exist({ account: user.account});
     if(is_exist_account) {
-      throw new Error('User is exist!')
+      throw new ApiError('User is exist!', RequestCode.Account_Already_Exist)
     }
 
     const is_exist_email = await this.userRepository.exist({ email: user.email}) 
     if(is_exist_email) {
-      throw new Error('Email is exist!')
+      throw new ApiError('Email is exist!', RequestCode.Email_Already_Exist)
     }
 
     if(!user.password) {
@@ -172,7 +165,7 @@ export class UserController {
 
     const res = await this.userRepository.save(user);
     console.log(res)
-    return this.ObjectMapper<LoginOutputDto>(LoginOutputDto, res)
+    return this.userRepository.ObjectMapper<LoginOutputDto>(LoginOutputDto, res)
   }
 
   @Post("/login")
@@ -183,12 +176,12 @@ export class UserController {
     if(res.length > 0) {
       let user: any = res[0]
       if(user.password === dto.password) { 
-        return this.ObjectMapper<LoginOutputDto>(LoginOutputDto, user)
+        return this.userRepository.ObjectMapper<LoginOutputDto>(LoginOutputDto, user)
       }else {
-        throw new Error('Password is incorrect!')
+        throw new AuthError('Password is incorrect!', AuthErrorCode.Password_Not_Exist)
       }
     } else {
-      throw new Error('Account is not exist!')
+      throw new AuthError('Account is not exist!',  AuthErrorCode.Password_Not_Exist)
     }
     
   } 
