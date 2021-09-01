@@ -1,153 +1,38 @@
 /*
- * @Description:
+ * @Description: 
  * @Version: 1.0
  * @Autor: Benjamin Chiu
- * @Date: 2021-08-16 10:38:35
- * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-08-26 22:51:51
+ * @Date: 2021-08-31 16:23:14
+ * @LastEditors: Benjamin Chiu
+ * @LastEditTime: 2021-09-01 16:28:21
  */
-import { Type } from "class-transformer";
 import {
   JsonController,
-  Get,
   Post,
-  Param,
-  Delete,
   Body,
-  UseAfter,
-  Authorized,
-  ContentType,
-  HeaderParam,
-  ResponseClassTransformOptions,
   UseBefore,
   Req,
 } from "routing-controllers";
 import { Service } from "typedi";
-import { CategoryRepository } from "../repository/CategoryRepository";
-import { User } from "../mongo/type/User";
-import * as Response from "../model/User";
-import { TokenMiddleware } from "../middleware/TokenMiddleware";
-import { AbstractControllerTemplate, BaseController } from "./BaseController";
+import { RefreshTokenMiddleware } from "../middleware/TokenMiddleware";
 import { OpenAPI, ResponseSchema } from "routing-controllers-openapi";
-import { LoginError, AuthError, ApiError } from "../errors/Error";
+import { AuthError, ApiError } from "../errors/Error";
 import { UserRepository } from "../repository/UserRepository";
-import { ResponseMiddleware } from "../middleware/ResponseMiddleware";
-import { plainToClass } from "class-transformer";
 import { Token } from "../common/token";
-import {
-  Allow,
-  IsBoolean,
-  IsEmail,
-  IsEmpty,
-  IsInt,
-  IsNumber,
-  IsObject,
-  IsString,
-  MaxLength,
-} from "class-validator";
 import { AuthErrorCode, RequestCode } from "../errors/ErrorCode";
-class UserResponse {
-  @IsString()
-  name: string;
-
-  @IsString({ each: true })
-  hobbies: string[];
-}
-class Res {
-  @IsNumber()
-  errCode: number;
-
-  @IsString()
-  msg: string;
-
-  @IsObject()
-  result: UserResponse[];
-}
-
-class LoginDto {
-  @Allow()
-  password?: string;
-  @IsString()
-  @MaxLength(20)
-  account: string;
-}
-
-class LoginOutputDto {
-  @IsString()
-  _id: string = "";
-  @IsString()
-  name: string = "";
-  @Allow()
-  @IsString()
-  email: string = "";
-  @Allow()
-  @IsString()
-  gender: string = "";
-  @IsString()
-  account: string = "";
-}
-class ValidateTokenDto {
-  @Allow()
-  @IsString()
-  accessToken: string = "";
-  @Allow()
-  @IsString()
-  refreshToken: string = "";
-}
-class LoginSuccessDto extends ValidateTokenDto {
-  @Allow()
-  @IsString()
-  accessToken: string = "";
-  @Allow()
-  @IsString()
-  refreshToken: string = "";
-}
-
-class ValidateTokenOutputDto {
-  @IsBoolean()
-  validateAccessToken: boolean = false;
-  @IsBoolean()
-  validateRefreshToken: boolean = false;
-}
-
-class CreateUserDto extends User {
-  @IsString()
-  @MaxLength(20)
-  name: string;
-  @Allow()
-  @IsEmail()
-  email: string;
-  @IsInt()
-  @Allow()
-  gender: number;
-  @IsString()
-  account: string;
-  @Allow()
-  password?: string;
-}
-
-class CreateUserResultDto extends User {
-  @IsString()
-  @MaxLength(20)
-  name: string;
-  @Allow()
-  @IsEmail()
-  email: string;
-  @IsInt()
-  @Allow()
-  gender: number;
-  @IsString()
-  account: string;
-  @Allow()
-  @IsString()
-  password: string;
-}
+import {
+  LoginDto,
+  LoginSuccessDto,
+  ValidateTokenDto,
+  ValidateTokenOutputDto,
+} from "./dto/AuthDto";
+import { RegisterUserDto } from "./dto/UserDto";
 
 @Service()
 @OpenAPI({
   security: [{ basicAuth: ["/api/v1/login"] }],
 })
-@JsonController("/api/v1/auth") 
+@JsonController("/api/v1/auth")
 export class AuthController {
   constructor(private userRepository: UserRepository) {}
 
@@ -161,26 +46,24 @@ export class AuthController {
     return res;
   }
 
-  @UseBefore(TokenMiddleware)
+  @UseBefore(RefreshTokenMiddleware)
   @Post("/refreshToken")
   @ResponseSchema(ValidateTokenOutputDto, { isArray: false })
   @OpenAPI({ summary: "Refresh  accessToken by refreshToken!" })
-  refreshToken(
-    @Body() dto: ValidateTokenDto, @Req() request: any
-  ) { 
-      console.log(1)
-      const r = new LoginSuccessDto();
-      const token = request.headers.authorization.replace('Bearer ','')
-      const id = Token.validRefreshToken(token);
+  refreshToken(@Body() dto: ValidateTokenDto, @Req() request: any) {
+    console.log(1);
+    const r = new LoginSuccessDto();
+    const token = request.headers.authorization.replace("Bearer ", "");
+    const id = Token.validRefreshToken(token);
     r.accessToken = Token.generateUserToken(id);
-    r.refreshToken = token
-    return r; 
+    r.refreshToken = token;
+    return r;
   }
 
   @Post("/register")
-  @ResponseSchema(LoginOutputDto, { isArray: false })
+  @ResponseSchema(LoginSuccessDto, { isArray: false })
   @OpenAPI({ summary: "Register a new user" })
-  async create(@Body() user: CreateUserDto) {
+  async create(@Body() user: RegisterUserDto) {
     const is_exist_account = await this.userRepository.exist({
       account: user.account,
     });
@@ -193,15 +76,11 @@ export class AuthController {
     if (is_exist_email) {
       throw new ApiError("Email is exist!", RequestCode.Email_Already_Exist);
     }
-    if (!user.password) {
-      user.password = "123456";
-    }
-    const res = await this.userRepository.save(user);
-    console.log(res);
-    return this.userRepository.ObjectMapper<LoginOutputDto>(
-      LoginOutputDto,
-      res
-    );
+    const res: any = await this.userRepository.save(user);
+    const r = new LoginSuccessDto();
+    r.accessToken = Token.generateUserToken(res._id);
+    r.refreshToken = Token.generateAccessToken(res._id);
+    return r;
   }
 
   @Post("/login")
@@ -225,7 +104,7 @@ export class AuthController {
     } else {
       throw new AuthError(
         "Account is not exist!",
-        AuthErrorCode.Password_Not_Exist
+        AuthErrorCode.Account_Not_Exist
       );
     }
   }

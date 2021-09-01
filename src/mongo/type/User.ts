@@ -8,17 +8,19 @@
  */
 import { Expose } from 'class-transformer';
 import { prop, getModelForClass  } from "@typegoose/typegoose";
-class User  {
+import { Entity } from './Entity';
+class User extends Entity {
     @prop()
     name?: string;
-    @prop()
+    @prop({required: true, unique: true})
     email: string;
     @prop()
     gender?: number;
-    @prop()
+    @prop({required: true, unique: true})
     account: string;
-    @prop()
+    @prop({ default: '123456' })
     password?: string;
+    
   }
 const UserModel = getModelForClass(User);
 export {

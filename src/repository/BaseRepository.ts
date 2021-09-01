@@ -26,12 +26,22 @@ export class BaseRepository<T> {
   }
 
   ObjectMapper<S>(c: { new(): S; },source: any) { 
-    const t = new c()
-    console.log(t)
-    console.log(Object.keys(t))
+    const t = new c() 
     Object.keys(t).map(i =>{
       (t as any)[i] = source[i]
     })
     return t
+   
+  }
+
+  
+  ObjectArrayMapper<S>(c: { new(): S; },source: any[]) {  
+    return source.map((item, index) => {
+      const t = new c()  
+      Object.keys(t).map(i =>{
+        (t as any)[i] = item[i]
+      })
+      return t
+    }) 
   }
 }

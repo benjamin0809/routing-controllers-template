@@ -6,7 +6,7 @@
  * @LastEditors: Please set LastEditors
  * @LastEditTime: 2021-08-26 22:51:51
  */
-import { Type } from 'class-transformer'
+import { Type } from "class-transformer";
 import {
   JsonController,
   Get,
@@ -17,172 +17,142 @@ import {
   UseAfter,
   Authorized,
   ContentType,
+  UseBefore,
+  QueryParam,
 } from "routing-controllers";
 import { Service } from "typedi";
 import { CategoryRepository } from "../repository/CategoryRepository";
 import { User } from "../mongo/type/User";
 import * as Response from "../model/User";
-import { TokenMiddleware } from "../middleware/TokenMiddleware";
+import { AccessTokenMiddleware } from "../middleware/TokenMiddleware";
 import { AbstractControllerTemplate, BaseController } from "./BaseController";
 import { OpenAPI, ResponseSchema } from "routing-controllers-openapi";
-import { LoginError, AuthError, ApiError } from '../errors/Error'
+import { LoginError, AuthError, ApiError } from "../errors/Error";
 import { UserRepository } from "../repository/UserRepository";
 import { ResponseMiddleware } from "../middleware/ResponseMiddleware";
 import { plainToClass } from "class-transformer";
-import { Allow, IsEmail, IsEmpty, IsInt, IsNumber, IsObject, IsString, MaxLength } from "class-validator";
-import { AuthErrorCode, RequestCode } from '../errors/ErrorCode';
+import {
+  Allow,
+  IsDateString,
+  IsEmail,
+  IsEmpty,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsString,
+  MaxLength,
+} from "class-validator";
+import { AuthErrorCode, RequestCode } from "../errors/ErrorCode";
+import { Condition, UserDto } from "./dto/UserDto";
 class UserResponse {
   @IsString()
-  name: string
+  name: string;
 
   @IsString({ each: true })
-  hobbies: string[]
+  hobbies: string[];
 }
 class Res {
   @IsNumber()
-  errCode: number
+  errCode: number;
 
   @IsString()
-  msg: string
+  msg: string;
 
   @IsObject()
-  result: UserResponse[]
+  result: UserResponse[];
 }
 
-class LoginDto { 
+class LoginDto {
   @Allow()
-  password?: string; 
+  password?: string;
   @IsString()
   @MaxLength(20)
-  account: string; 
+  account: string;
 }
 
-class LoginOutputDto {   
-  @IsString() 
-  _id: string = '';
-  @IsString() 
-  name: string = ''; 
-  @Allow() 
-  @IsString()
-  email: string= ''; 
-  @Allow() 
-  @IsString()
-  gender: string= '';  
-  @IsString() 
-  account: string= ''; 
-}
-
-class CreateUserDto extends User{
+class CreateUserDto extends User {
   @IsString()
   @MaxLength(20)
   name: string;
-  @Allow() 
+  @Allow()
   @IsEmail()
   email: string;
   @IsInt()
-  @Allow() 
+  @Allow()
   gender: number;
   @IsString()
-  account: string; 
-  @Allow() 
+  account: string;
+  @Allow()
   password?: string;
 }
 
-class CreateUserResultDto extends User{
+class CreateUserResultDto extends User {
   @IsString()
   @MaxLength(20)
   name: string;
-  @Allow() 
+  @Allow()
   @IsEmail()
   email: string;
   @IsInt()
-  @Allow() 
+  @Allow()
   gender: number;
   @IsString()
-  account: string; 
-  @Allow() 
-  @IsString() 
+  account: string;
+  @Allow()
+  @IsString()
   password: string;
 }
 
 @Service()
 @OpenAPI({
-  security: [{ basicAuth: ['/api/v1/login'] }],
+  security: [{ basicAuth: ["/api/v1/login"] }],
 })
-@JsonController("/api/v1")
+@UseBefore(AccessTokenMiddleware)
+@JsonController("/api/v1/user")
 export class UserController {
-  constructor(private userRepository: UserRepository) {
-  }
+  constructor(private userRepository: UserRepository) {}
 
   @Authorized()
-  @Get("/users")
-  @ResponseSchema(Res, {
+  @Get("/all")
+  @ResponseSchema(UserDto, {
     contentType: "application/json",
     isArray: true,
-  }) 
-  @OpenAPI({  summary: "Return a list of users" })
+  })
+  @OpenAPI({ summary: "Return a list of users" })
   async all() {
-    const res = await this.userRepository.findAll(); 
-    const user = plainToClass(Response.User, res)
-    console.log(res, user) 
-    return { res, user};
+    const res = await this.userRepository.findAll();
+    return this.userRepository.ObjectArrayMapper<UserDto>(UserDto, res);
   }
 
   @Authorized()
-  @Get("/getUsers")
-  @ResponseSchema(UserResponse, { isArray: false })
-  @OpenAPI({ summary: "Return a users" })
-  async getUsers() {
-    return await this.userRepository.find({});
+  @Get("/find")
+  @ResponseSchema(UserDto, { isArray: false })
+  @OpenAPI({ summary: "Return user list by option" })
+  async getUsers(
+    @QueryParam("name") name: string,
+    @QueryParam("account") account: string,
+    @QueryParam("email") email: string,
+    @QueryParam("gender") gender: number ,
+    @QueryParam("skip") skip: number ,
+    @QueryParam("limit") limit: number
+  ) {
+    console.log(gender)
+    let cond = {
+      name: new RegExp(name, "i"),
+      account: new RegExp(account, "i"),
+      email: new RegExp(email, "i"),
+    };
+    if(typeof gender === 'number') {
+      cond = Object.assign(cond, { gender })
+    }
+    return await this.userRepository.find(cond,skip,limit);
   }
-
 
   @Authorized("get")
   @Get("/user/:id")
-  @ResponseSchema(Response.User, { isArray: false })
+  @ResponseSchema(UserDto, { isArray: false })
   @OpenAPI({ summary: "Return a user" })
   one(@Param("id") id: string) {
     return this.userRepository.findOne(id);
   }
-
-  @Post("/user")
-  @ResponseSchema(LoginOutputDto, { isArray: false })
-  @OpenAPI({ summary: 'Create a new user' })
-  async create(@Body() user: CreateUserDto) { 
-    const is_exist_account = await this.userRepository.exist({ account: user.account});
-    if(is_exist_account) {
-      throw new ApiError('User is exist!', RequestCode.Account_Already_Exist)
-    }
-
-    const is_exist_email = await this.userRepository.exist({ email: user.email}) 
-    if(is_exist_email) {
-      throw new ApiError('Email is exist!', RequestCode.Email_Already_Exist)
-    }
-
-    if(!user.password) {
-      user.password = '123456'
-    }
-
-    const res = await this.userRepository.save(user);
-    console.log(res)
-    return this.userRepository.ObjectMapper<LoginOutputDto>(LoginOutputDto, res)
-  }
-
-  @Post("/login")
-  @ResponseSchema(LoginOutputDto, { isArray: false })
-  @OpenAPI({ summary: 'Login' })
-  async login(@Body() dto: LoginDto) {
-    const res = await this.userRepository.find({ account: dto.account});
-    if(res.length > 0) {
-      let user: any = res[0]
-      if(user.password === dto.password) { 
-        return this.userRepository.ObjectMapper<LoginOutputDto>(LoginOutputDto, user)
-      }else {
-        throw new AuthError('Password is incorrect!', AuthErrorCode.Password_Not_Exist)
-      }
-    } else {
-      throw new AuthError('Account is not exist!',  AuthErrorCode.Password_Not_Exist)
-    }
-    
-  } 
 }
