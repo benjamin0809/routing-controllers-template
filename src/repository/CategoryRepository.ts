@@ -4,50 +4,37 @@
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-14 11:14:18
  * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-08-14 12:19:03
+ * @LastEditTime: 2021-09-02 17:51:44
  */
-import { Service } from "typedi";
-import { Category } from "../model/Category";
+import { Service } from "typedi"; 
+import { CategoryModel, Category } from "../mongo/type/Category";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
-export class CategoryRepository {
-  private categories = [
-    new Category(1, "Society"),
-    new Category(2, "Technology"),
-    new Category(3, "Politics"),
-    new Category(4, "Economy"),
-    new Category(5, "Sports"),
-    new Category(6, "Games"),
-  ];
+export class CategoryRepository extends BaseRepository<Category>{ 
 
-  findAll() {
-    // here, for example you can load categories using mongoose
-    // you can also return a promise here
-    // simulate async with creating an empty promise
-    return Promise.resolve(this.categories);
+  
+  async find(filter = {}, skip = 0, limit = 10) { 
+    const res = await CategoryModel.find(filter).skip(skip).limit(limit).exec();
+    return this.transformMany(res);
   }
 
-  findOne(id: number) {
-    // here, for example you can load category id using mongoose
-    // you can also return a promise here
-    let foundCategory: Category = undefined;
-    this.categories.forEach((category) => {
-      if (category.id === id) foundCategory = category;
-    });
-    return foundCategory;
+  async findAll() {
+    const res = await CategoryModel.find().exec();
+    return this.transformMany(res);
   }
 
-  save(category: Category) {
-    // here, for example you can save a category to mongodb using mongoose
-    this.categories.push(category);
-    return category;
+  async findOne(id: string) {
+    const res = await CategoryModel.findById(id).exec();
+    return this.transformOne(res);
   }
 
-  remove(id: number) {
-    // here, for example you can save a category to mongodb using mongoose
-    const category = this.findOne(id);
-    if (category) this.categories.splice(this.categories.indexOf(category), 1);
+  async save(category: Category) {
+    const res = await CategoryModel.create(category);
+    return this.transformOne(res);
+  }
 
-    return category;
+  async remove(id: number) {
+    return await CategoryModel.remove({ id: id });
   }
 }

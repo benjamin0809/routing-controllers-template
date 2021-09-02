@@ -3,8 +3,8 @@
  * @Version: 1.0
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-16 10:38:35
- * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-08-26 22:51:51
+ * @LastEditors: Benjamin Chiu
+ * @LastEditTime: 2021-09-02 18:12:34
  */
 import { Type } from "class-transformer";
 import {
@@ -121,7 +121,7 @@ export class UserController {
   @OpenAPI({ summary: "Return a list of users" })
   async all() {
     const res = await this.userRepository.findAll();
-    return this.userRepository.ObjectArrayMapper<UserDto>(UserDto, res);
+    return this.userRepository.ObjectMapper<UserDto>(UserDto, res);
   }
 
   @Authorized()
@@ -136,7 +136,6 @@ export class UserController {
     @QueryParam("skip") skip: number ,
     @QueryParam("limit") limit: number
   ) {
-    console.log(gender)
     let cond = {
       name: new RegExp(name, "i"),
       account: new RegExp(account, "i"),
@@ -145,14 +144,17 @@ export class UserController {
     if(typeof gender === 'number') {
       cond = Object.assign(cond, { gender })
     }
-    return await this.userRepository.find(cond,skip,limit);
+    const res = await this.userRepository.find(cond,skip,limit);
+    return this.userRepository.ObjectMapper<UserDto>(UserDto, res);
   }
 
   @Authorized("get")
-  @Get("/user/:id")
+  @Get("/one/:id")
   @ResponseSchema(UserDto, { isArray: false })
   @OpenAPI({ summary: "Return a user" })
   one(@Param("id") id: string) {
-    return this.userRepository.findOne(id);
+    const res = this.userRepository.findOne(id);
+    
+    return this.userRepository.ObjectMapper<UserDto>(UserDto, res);
   }
 }
