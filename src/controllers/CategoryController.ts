@@ -1,10 +1,18 @@
 /*
+ * @Description: 
+ * @Version: 1.0
+ * @Autor: Benjamin Chiu
+ * @Date: 2021-08-14 18:03:39
+ * @LastEditors: Benjamin Chiu
+ * @LastEditTime: 2021-09-03 14:16:47
+ */
+/*
  * @Description:
  * @Version: 1.0
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-14 11:14:18
  * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-09-02 18:12:13
+ * @LastEditTime: 2021-09-03 11:08:02
  */
 import {
   JsonController,
@@ -22,6 +30,9 @@ import { CategoryRepository } from "../repository/CategoryRepository";
 import { Category } from "../model/Category";
 import { AbstractControllerTemplate } from "./BaseController";
 import { OpenAPI, ResponseSchema } from "routing-controllers-openapi"; 
+import { DeleteCategoryDto, RegisterCategoryDto } from "./dto/categoryDto";
+import { ApiError } from "../errors/Error";
+import { CategoryErrorCode, RequestCode } from "../errors/ErrorCode";
 
 
 @Service()
@@ -43,7 +54,7 @@ export class CategoryController {
   }
 
   @Authorized()
-  @Get("/all")
+  @Get("/find")
   @ResponseSchema(Category, { isArray: true })
   @OpenAPI({ summary: 'Return a list of users' })
   find() {
@@ -52,24 +63,35 @@ export class CategoryController {
 
 
   @Authorized("get")
-  @Get("/categories/:id")
+  @Get("/one/:id")
   @ResponseSchema(Category, { isArray: true })
   @OpenAPI({ summary: 'Return a list of users' })
   one(@Param("id") id: string) {
     return this.categoryRepository.findOne(id);
   }
 
-  @Post("/categories")
+  @Post("/save")
   @ResponseSchema(Category, { isArray: true })
   @OpenAPI({ summary: 'Return a list of users' })
-  category(@Body() category: Category) {
+  async category(@Body() category: RegisterCategoryDto) {
+    if(await this.categoryRepository.exist({name: category.name})) {
+      throw new ApiError("Category name is existed!", RequestCode.Category_Name_Already_Exist);
+    }
     return this.categoryRepository.save(category);
   }
 
-  @Delete("/categories/:id")
+  @Delete("/one/:id")
   @ResponseSchema(Category, { isArray: true })
-  @OpenAPI({ summary: 'Return a list of users' })
-  delete(@Param("id") id: number) {
-    return this.categoryRepository.remove(id);
+  @OpenAPI({ summary: 'Delete One' })
+  deleteOne(@Param("id") id: string) {
+    return this.categoryRepository.deleteOne(id);
+  }
+
+  @Delete("/many")
+  @ResponseSchema(Category, { isArray: true })
+  @OpenAPI({ summary: 'DeleteMany Categories' })
+  deleteMany(@Body() dto: DeleteCategoryDto) {
+    const ids = dto.ids.split(',')
+    return this.categoryRepository.deleteMany(ids);
   }
 }

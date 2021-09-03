@@ -4,7 +4,7 @@
  * @Autor: Benjamin Chiu
  * @Date: 2021-08-16 10:38:35
  * @LastEditors: Benjamin Chiu
- * @LastEditTime: 2021-09-02 18:12:34
+ * @LastEditTime: 2021-09-03 10:55:32
  */
 import { Type } from "class-transformer";
 import {
@@ -132,10 +132,11 @@ export class UserController {
     @QueryParam("name") name: string,
     @QueryParam("account") account: string,
     @QueryParam("email") email: string,
-    @QueryParam("gender") gender: number ,
+    @QueryParam("gender") gender: number,
     @QueryParam("skip") skip: number ,
     @QueryParam("limit") limit: number
   ) {
+    console.log(11)
     let cond = {
       name: new RegExp(name, "i"),
       account: new RegExp(account, "i"),
@@ -152,9 +153,10 @@ export class UserController {
   @Get("/one/:id")
   @ResponseSchema(UserDto, { isArray: false })
   @OpenAPI({ summary: "Return a user" })
-  one(@Param("id") id: string) {
-    const res = this.userRepository.findOne(id);
-    
+  async one(@Param("id") id: string) {
+
+    const res = await this.userRepository.findOne(id);
+    console.log(res)
     return this.userRepository.ObjectMapper<UserDto>(UserDto, res);
   }
 }

@@ -5,7 +5,7 @@
   "description": "Example of express + typescript project using routing-controllers",
   "license": "MIT",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only ./src/app.ts",
+    "serve": "ts-node-dev --respawn --transpile-only ./src/app.ts",
     "start": "npm run build && node ./build/app.js",
     "start:watch": "npm run build:watch & nodemon ./build/app.js",
     "build": "tsc",

@@ -5,7 +5,12 @@ export enum AuthErrorCode {
     Access_Token_Invalid = 10004,
 }
 
+export enum CategoryErrorCode {
+    Category_Name_Already_Exist = 20001, 
+}
+
 export enum RequestCode {
     Account_Already_Exist = 20001,
-    Email_Already_Exist = 20002
+    Email_Already_Exist = 20002,
+    Category_Name_Already_Exist = 30001, 
 }
